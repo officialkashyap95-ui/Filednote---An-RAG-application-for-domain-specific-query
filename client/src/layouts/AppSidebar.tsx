@@ -17,10 +17,10 @@ import {
   Search,
   Scale,
   Settings2,
-  ShieldCheck,
   Stethoscope,
   X,
 } from "lucide-react";
+import type { AuthUser } from "../lib/api";
 
 type Props = {
   activeDomain: string;
@@ -29,6 +29,9 @@ type Props = {
   onNotebookChange: (notebook: string) => void;
   open: boolean;
   onClose: () => void;
+  user: AuthUser;
+  onLogout: () => void | Promise<void>;
+  signingOut: boolean;
 };
 
 const domains = [
@@ -44,6 +47,17 @@ const notebooks = [
   "Python Fundamentals",
 ];
 
+function getInitials(name: string) {
+  return name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
 export function AppSidebar({
   activeDomain,
   activeNotebook,
@@ -51,6 +65,9 @@ export function AppSidebar({
   onNotebookChange,
   open,
   onClose,
+  user,
+  onLogout,
+  signingOut,
 }: Props) {
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const workspaceMenuRef = useRef<HTMLDivElement>(null);
@@ -79,6 +96,14 @@ export function AppSidebar({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  async function handleLogoutClick() {
+    if (signingOut) return;
+
+    // Close the menu and invoke the logout handler supplied by App.tsx.
+    setWorkspaceMenuOpen(false);
+    await onLogout();
+  }
 
   return (
     <aside className={`app-sidebar ${open ? "app-sidebar--open" : ""}`}>
@@ -198,46 +223,88 @@ export function AppSidebar({
                 type="button"
                 onClick={() => setWorkspaceMenuOpen(false)}
               >
-                <span className="account-menu-avatar">PK</span>
-                <span className="account-menu-identity-copy">
-                  <strong>piyushkashyap</strong>
-                  <small>Free plan</small>
+                <span className="account-menu-avatar">
+                  {getInitials(user.name)}
                 </span>
+
+                <span className="account-menu-identity-copy">
+                  <strong>{user.name}</strong>
+                  <small>{user.email}</small>
+                </span>
+
                 <ChevronRight size={18} />
               </button>
 
               <div className="account-menu-divider" />
 
-              <button className="workspace-menu-item" type="button" onClick={() => setWorkspaceMenuOpen(false)}>
+              <button
+                className="workspace-menu-item"
+                type="button"
+                onClick={() => setWorkspaceMenuOpen(false)}
+              >
                 <Sparkles size={19} />
                 <span>Explore plans</span>
               </button>
-              <button className="workspace-menu-item" type="button" onClick={() => setWorkspaceMenuOpen(false)}>
+
+              <button
+                className="workspace-menu-item"
+                type="button"
+                onClick={() => setWorkspaceMenuOpen(false)}
+              >
                 <SlidersHorizontal size={19} />
                 <span>Personalization</span>
               </button>
-              <button className="workspace-menu-item" type="button" onClick={() => setWorkspaceMenuOpen(false)}>
+
+              <button
+                className="workspace-menu-item"
+                type="button"
+                onClick={() => setWorkspaceMenuOpen(false)}
+              >
                 <CircleUserRound size={19} />
                 <span>Profile</span>
               </button>
-              <button className="workspace-menu-item" type="button" onClick={() => setWorkspaceMenuOpen(false)}>
+
+              <button
+                className="workspace-menu-item"
+                type="button"
+                onClick={() => setWorkspaceMenuOpen(false)}
+              >
                 <Settings2 size={19} />
                 <span>Settings</span>
               </button>
 
               <div className="account-menu-divider" />
 
-              <button className="workspace-menu-item" type="button" onClick={() => setWorkspaceMenuOpen(false)}>
+              <button
+                className="workspace-menu-item"
+                type="button"
+                onClick={() => setWorkspaceMenuOpen(false)}
+              >
                 <CircleHelp size={19} />
                 <span>Help</span>
-                <ChevronRight className="account-menu-trailing" size={17} />
-              </button>
-              <button className="workspace-menu-item" type="button" onClick={() => setWorkspaceMenuOpen(false)}>
-                <LogOut size={19} />
-                <span>Log out</span>
+                <ChevronRight
+                  className="account-menu-trailing"
+                  size={17}
+                />
               </button>
 
-              <button className="account-menu-offer" type="button" onClick={() => setWorkspaceMenuOpen(false)}>
+              <button
+                className="workspace-menu-item"
+                type="button"
+                onClick={handleLogoutClick}
+                disabled={signingOut}
+              >
+                <LogOut size={19} />
+                <span>
+                  {signingOut ? "Logging out..." : "Log out"}
+                </span>
+              </button>
+
+              <button
+                className="account-menu-offer"
+                type="button"
+                onClick={() => setWorkspaceMenuOpen(false)}
+              >
                 <Gift size={18} />
                 <span>Explore Fieldnotes features</span>
               </button>
@@ -255,11 +322,11 @@ export function AppSidebar({
               setWorkspaceMenuOpen((current) => !current)
             }
           >
-            <span className="user-avatar">PK</span>
+            <span className="user-avatar">{getInitials(user.name)}</span>
 
             <span className="user-profile-info">
-              <strong>Personal account</strong>
-              <small>Demo workspace</small>
+              <strong>{user.name}</strong>
+              <small>Personal account</small>
             </span>
 
             <ChevronDown
