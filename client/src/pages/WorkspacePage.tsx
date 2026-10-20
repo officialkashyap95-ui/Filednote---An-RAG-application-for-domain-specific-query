@@ -23,6 +23,7 @@ import { NotebookHeader } from "../features/notebooks/components/NotebookHeader"
 import { ChatMessageList } from "../features/chat/components/ChatMessageList";
 import { ChatComposer } from "../features/chat/components/ChatComposer";
 import { SourcePanel } from "../features/sources/components/SourcePanel";
+import type { AuthUser } from "../lib/api";
 
 import type { ChatMessage, Citation, SourceDocument } from "../types";
 
@@ -125,6 +126,12 @@ const initialMessages: ChatMessage[] = [
   },
 ];
 
+type WorkspacePageProps = {
+  user: AuthUser;
+  onLogout: () => void | Promise<void>;
+  signingOut: boolean;
+};
+
 type ResizeTarget = "sidebar" | "sources";
 
 type DragState = {
@@ -133,7 +140,11 @@ type DragState = {
   startWidth: number;
 };
 
-export default function WorkspacePage() {
+export default function WorkspacePage({
+  user,
+  onLogout,
+  signingOut,
+}: WorkspacePageProps) {
   const [activeDomain, setActiveDomain] = useState("Education");
   const [activeNotebook, setActiveNotebook] =
     useState("Computer Networks");
@@ -351,6 +362,9 @@ export default function WorkspacePage() {
         onNotebookChange={setActiveNotebook}
         open={mobileNavOpen}
         onClose={() => setMobileNavOpen(false)}
+        user={user}
+        onLogout={onLogout}
+        signingOut={signingOut}
       />
 
       <button
@@ -409,9 +423,8 @@ export default function WorkspacePage() {
         />
 
         <div
-          className={`workspace ${
-            sourcePanelOpen ? "" : "workspace--wide"
-          }`}
+          className={`workspace ${sourcePanelOpen ? "" : "workspace--wide"
+            }`}
           style={
             {
               "--source-panel-width": `${sourcePanelWidth}px`,

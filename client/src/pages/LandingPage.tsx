@@ -1,34 +1,80 @@
-
+import { useState } from "react";
 import "./LandingPage.css";
 
 type LandingPageProps = {
   onOpenWorkspace: () => void;
+  onOpenLogin: () => void;
 };
 
-const features = [
+const samples = [
   {
-    number: "01",
-    title: "Bring your material together",
-    description:
-      "Keep lecture notes, reports, papers and reference documents in one place.",
+    tab: "Lecture notes",
+    project: "Computer Networks",
+    sources: [
+      { name: "Lecture 02.pdf", meta: "24 pages" },
+      { name: "Class notes.txt", meta: "3 pages" },
+      { name: "Tanenbaum ch. 1.pdf", meta: "41 pages" },
+    ],
+    question: "What are the components of a data communication system?",
+    answer:
+      "Five: sender, receiver, message, transmission medium and protocol. The protocol is the set of rules both ends agree on. Without it, two devices can be connected and still not understand each other.",
+    cite: { doc: "Lecture 02.pdf", page: "Page 3" },
   },
   {
-    number: "02",
-    title: "Ask better questions",
-    description:
-      "Explore ideas across your documents instead of searching through them one by one.",
+    tab: "Research paper",
+    project: "Sleep and memory review",
+    sources: [
+      { name: "Diekelmann 2010.pdf", meta: "12 pages" },
+      { name: "Reading log.txt", meta: "2 pages" },
+    ],
+    question: "Which studies in my folder found no effect of napping?",
+    answer:
+      "One. The 2010 review reports a null result for naps under 20 minutes when testing procedural memory. The reading log mentions a second paper, but you haven't added it yet.",
+    cite: { doc: "Diekelmann 2010.pdf", page: "Page 7" },
   },
   {
-    number: "03",
-    title: "Follow the source",
-    description:
-      "Trace answers back to the documents and passages that support them.",
+    tab: "Not in your sources",
+    project: "Quarterly report",
+    sources: [{ name: "Q3 report.pdf", meta: "18 pages" }],
+    question: "What was the churn rate in Q2?",
+    answer:
+      "I can't find that. The report covers Q3 only and mentions Q2 revenue on page 9, but not churn. Add the Q2 report and ask again.",
+    cite: null,
   },
 ];
 
-export default function LandingPage({
-  onOpenWorkspace,
-}: LandingPageProps) {
+const features = [
+  {
+    title: "One workspace per project",
+    text: "Upload PDFs and text notes into a project. Everything you ask is answered from that project only.",
+  },
+  {
+    title: "Questions across documents",
+    text: "Ask how two papers disagree, or where a term first appears. You don't need to remember which file it was in.",
+  },
+  {
+    title: "Every answer shows its source",
+    text: "Each claim links to the document and page it came from, so you can read the original before you rely on it.",
+  },
+];
+
+const steps = [
+  ["Add your documents", "Drop in PDFs or paste notes. Fieldnotes reads them and keeps them in your project."],
+  ["Ask a question", "Write it the way you'd ask a classmate or colleague. Follow-ups keep their context."],
+  ["Open the source", "Click a citation to jump to the page. If your documents don't cover it, Fieldnotes says so."],
+];
+
+const toc = [
+  ["overview", "Overview"],
+  ["features", "Features"],
+  ["how-it-works", "How it works"],
+  ["limitations", "Limitations"],
+];
+
+export default function LandingPage({ onOpenWorkspace, onOpenLogin }: LandingPageProps) {
+  const [active, setActive] = useState(0);
+  const s = samples[active];
+
   return (
     <main className="landing-page" id="top">
       <header className="landing-nav">
@@ -38,245 +84,144 @@ export default function LandingPage({
         </a>
 
         <nav className="landing-nav-links" aria-label="Main navigation">
-          <a href="#how-it-works">How it works</a>
           <a href="#features">Features</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="#limitations">Limitations</a>
         </nav>
 
-        <button
-          className="nav-workspace-button"
-          onClick={onOpenWorkspace}
-        >
-          Open workspace <span aria-hidden="true">↗</span>
-        </button>
+        <div className="landing-nav-actions">
+          <button className="nav-login-button" type="button" onClick={onOpenLogin}>
+            Log in
+          </button>
+          <button className="primary-button" type="button" onClick={onOpenWorkspace}>
+            Get started
+          </button>
+        </div>
       </header>
 
-      <section className="landing-hero">
-        <div className="hero-copy">
-          <p className="eyebrow">
-            A workspace for your reading and research
+      <article>
+        <header className="article-head" id="overview">
+          <p className="article-tag">Product</p>
+          <h1>Introducing Fieldnotes</h1>
+          <p className="article-lead">
+            Fieldnotes is a workspace where you add your PDFs and notes, ask
+            questions in plain language, and see which page each answer came
+            from.
           </p>
-
-          <h1>
-            Make sense of
-            <br />
-            <span>what you read.</span>
-          </h1>
-
-          <p className="hero-description">
-            Add your PDFs and notes, ask questions in plain language,
-            and see which passages support each answer.
-          </p>
-
-          <div className="hero-actions">
-            <button
-              className="primary-button"
-              onClick={onOpenWorkspace}
-            >
-              Get started <span aria-hidden="true">↗</span>
+          <div className="article-actions">
+            <button className="primary-button" type="button" onClick={onOpenWorkspace}>
+              Try Fieldnotes
             </button>
+            <a className="secondary-link" href="#samples">See an example</a>
+          </div>
+        </header>
 
-            <a className="secondary-link" href="#how-it-works">
-              See how it works <span aria-hidden="true">↓</span>
-            </a>
+        <section className="samples" id="samples" aria-label="Examples">
+          <h2 className="samples-title">Samples</h2>
+          <div className="sample-tabs" role="tablist">
+            {samples.map((x, i) => (
+              <button
+                key={x.tab}
+                role="tab"
+                type="button"
+                aria-selected={i === active}
+                className={i === active ? "sample-tab is-active" : "sample-tab"}
+                onClick={() => setActive(i)}
+              >
+                {x.tab}
+              </button>
+            ))}
           </div>
 
-          <p className="hero-footnote">
-            Made for curious minds, careful readers and lifelong learners.
-          </p>
-        </div>
-
-        {/* Product preview */}
-        <div className="hero-preview" aria-label="Example research workspace">
-          <div className="preview-topbar">
-            <div className="preview-breadcrumb">
-              <span className="preview-dot" />
-              <span>Computer Networks</span>
-            </div>
-
-            <button
-              className="preview-menu"
-              type="button"
-              aria-label="Example workspace menu"
-              tabIndex={-1}
-            >
-              •••
-            </button>
-          </div>
-
-          <div className="preview-content">
-            <aside className="preview-sources">
-              <div className="preview-section-heading">
-                <span>Your sources</span>
-                <span className="source-count">3</span>
-              </div>
-
-              <div className="preview-document selected">
-                <span className="source-file-icon pdf-icon">PDF</span>
-                <span className="document-copy">
-                  <strong>Lecture 02</strong>
-                  <small>Network fundamentals</small>
-                </span>
-              </div>
-
-              <div className="preview-document">
-                <span className="source-file-icon notes-icon">TXT</span>
-                <span className="document-copy">
-                  <strong>Class notes</strong>
-                  <small>Communication models</small>
-                </span>
-              </div>
-
-              <div className="preview-document">
-                <span className="source-file-icon paper-icon">PDF</span>
-                <span className="document-copy">
-                  <strong>Reference paper</strong>
-                  <small>Data transmission</small>
-                </span>
-              </div>
-
-              <p className="source-hint">
-                Your answers are grounded in the material you add.
-              </p>
+          <div className="sample-window">
+            <aside className="sample-sources">
+              <p className="sample-project">{s.project}</p>
+              <ul>
+                {s.sources.map((src) => (
+                  <li key={src.name}>
+                    <span>{src.name}</span>
+                    <small>{src.meta}</small>
+                  </li>
+                ))}
+              </ul>
             </aside>
 
-            <section className="preview-answer">
-              <div className="answer-context">
-                <span className="answer-context-dot" />
-                Answer based on your sources
-              </div>
-
-              <div className="question-bubble">
-                What are the key components of a data communication system?
-              </div>
-
-              <div className="answer-body">
-                <p>
-                  A data communication system has <strong>five key components</strong>.
-                  Each plays a different role in getting information from one
-                  device to another.
-                </p>
-
-                <div className="answer-point">
-                  <span className="answer-point-number">01</span>
-                  <p>
-                    <strong>Sender</strong>
-                    <span>The device that sends the information.</span>
-                  </p>
+            <div className="sample-chat" role="tabpanel" key={active}>
+              <div className="sample-question">{s.question}</div>
+              <p className="sample-answer">{s.answer}</p>
+              {s.cite && (
+                <div className="sample-cite">
+                  <strong>{s.cite.doc}</strong>
+                  <span>{s.cite.page}</span>
                 </div>
+              )}
+              <div className="sample-input">Ask a follow-up question</div>
+            </div>
+          </div>
+        </section>
 
-                <div className="answer-point">
-                  <span className="answer-point-number">02</span>
-                  <p>
-                    <strong>Receiver</strong>
-                    <span>The device that receives the information.</span>
-                  </p>
-                </div>
+        <div className="article-body">
+          <nav className="article-toc" aria-label="On this page">
+            {toc.map(([id, label]) => (
+              <a key={id} href={`#${id}`}>{label}</a>
+            ))}
+          </nav>
 
-                <div className="answer-point">
-                  <span className="answer-point-number">03</span>
-                  <p>
-                    <strong>Message, medium and protocol</strong>
-                    <span>
-                      The data being shared, the path it travels through,
-                      and the rules that govern the exchange.
-                    </span>
-                  </p>
-                </div>
-              </div>
+          <div className="article-text">
+            <section>
+              <p>
+                Good research isn't only about finding an answer. It's about
+                knowing where the answer came from. Fieldnotes keeps your
+                lecture notes, reports and papers in one place and answers
+                from them, so you can check every claim against the original.
+              </p>
+            </section>
 
-              <div className="citation">
-                <span className="citation-icon" aria-hidden="true">↗</span>
-                <span className="citation-copy">
-                  <strong>Lecture 02</strong>
-                  <small>Page 3</small>
-                </span>
-                <span className="citation-label">Source</span>
-              </div>
-
-              <div className="preview-prompt">
-                <span>Ask a follow-up question...</span>
-                <span className="prompt-arrow" aria-hidden="true">↑</span>
+            <section id="features">
+              <h2>What Fieldnotes does</h2>
+              <div className="feature-list">
+                {features.map((f) => (
+                  <div className="feature-item" key={f.title}>
+                    <h3>{f.title}</h3>
+                    <p>{f.text}</p>
+                  </div>
+                ))}
               </div>
             </section>
-          </div>
 
-          <div className="preview-caption">
-            <span>AN EXAMPLE RESEARCH SESSION</span>
-            <span>3 sources added</span>
-          </div>
-        </div>
-      </section>
+            <section id="how-it-works">
+              <h2>How it works</h2>
+              <ol className="steps-list">
+                {steps.map(([title, text], i) => (
+                  <li className="step" key={title}>
+                    <span>{i + 1}</span>
+                    <div>
+                      <h3>{title}</h3>
+                      <p>{text}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </section>
 
-      <section className="landing-note">
-        <p>
-          Good research is not just about finding an answer.
-          It is about knowing where it came from.
-        </p>
-        <span>THE FIELDNOTES APPROACH</span>
-      </section>
-
-      <section className="landing-features" id="features">
-        <div className="section-heading">
-          <p className="eyebrow">A little more clarity</p>
-          <h2>From scattered documents to connected ideas.</h2>
-        </div>
-
-        <div className="feature-list">
-          {features.map((feature) => (
-            <article className="feature-item" key={feature.number}>
-              <span className="feature-number">{feature.number}</span>
-              <h3>{feature.title}</h3>
-              <p>{feature.description}</p>
-              <span className="feature-arrow" aria-hidden="true">↗</span>
-            </article>
-          ))}
-        </div>
-      </section>
-
-      <section className="landing-how" id="how-it-works">
-        <div className="how-heading">
-          <p className="eyebrow">A simple way to begin</p>
-          <h2>Start with what you have.</h2>
-        </div>
-
-        <div className="steps-list">
-          <div className="step">
-            <span>01</span>
-            <div>
-              <h3>Add your documents</h3>
+            <section id="limitations">
+              <h2>Limitations</h2>
               <p>
-                Bring the material you want to understand into your workspace.
+                Fieldnotes only answers from the documents you add. It won't
+                fill gaps with guesses from the internet, and it tells you when
+                your sources don't cover a question. You still decide what to
+                trust, which is why every answer links back to the page.
               </p>
-            </div>
-          </div>
-
-          <div className="step">
-            <span>02</span>
-            <div>
-              <h3>Ask what matters</h3>
-              <p>
-                Ask specific questions and explore connections across your sources.
-              </p>
-            </div>
-          </div>
-
-          <div className="step">
-            <span>03</span>
-            <div>
-              <h3>Check the evidence</h3>
-              <p>
-                Use source references to return to the original material.
-              </p>
-            </div>
+            </section>
           </div>
         </div>
-      </section>
+      </article>
 
       <section className="landing-cta">
-        <p className="eyebrow">Your next good question starts here</p>
-        <h2>Read closely. Think clearly.</h2>
-        <button className="primary-button" onClick={onOpenWorkspace}>
-          Open fieldnotes <span aria-hidden="true">↗</span>
+        <h2>Add your first document</h2>
+        <p>It takes under a minute to set up a project.</p>
+        <button className="primary-button" type="button" onClick={onOpenWorkspace}>
+          Open Fieldnotes
         </button>
       </section>
 
@@ -285,12 +230,8 @@ export default function LandingPage({
           <span className="brand-mark" aria-hidden="true">f.</span>
           <span>fieldnotes</span>
         </a>
-
-        <span>A quieter place to think.</span>
-
-        <a href="#top">
-          Back to top ↑
-        </a>
+        <span>Document Q&amp;A with sources.</span>
+        <a href="#top">Back to top</a>
       </footer>
     </main>
   );
