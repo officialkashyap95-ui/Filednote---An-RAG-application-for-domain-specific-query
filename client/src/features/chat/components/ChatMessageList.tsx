@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Check,
   Copy,
@@ -12,6 +12,8 @@ import type { ChatMessage, Citation } from "../../../types";
 type Props = {
   messages: ChatMessage[];
   onCitationClick: (citation: Citation) => void;
+  showCitations?: boolean;
+  onFollowUp?: (text: string) => void;
 };
 
 function formatMessage(text: string) {
@@ -27,8 +29,29 @@ function formatMessage(text: string) {
 export function ChatMessageList({
   messages,
   onCitationClick,
+  showCitations = true,
+  onFollowUp,
 }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Record<string, "up" | "down">>({});
+  const [menuId, setMenuId] = useState<string | null>(null);
+
+  useEffect(() => {
+    function close(event: PointerEvent) {
+      if (!(event.target as Element).closest(".menu-anchor")) setMenuId(null);
+    }
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, []);
+
+  function rate(id: string, value: "up" | "down") {
+    setFeedback((current) => {
+      const next = { ...current };
+      if (next[id] === value) delete next[id];
+      else next[id] = value;
+      return next;
+    });
+  }
 
   async function copyMessage(message: ChatMessage) {
     const text = [
@@ -92,7 +115,7 @@ export function ChatMessageList({
               <p className="message-ending">{message.ending}</p>
             )}
 
-            {!!message.citations?.length && (
+            {showCitations && !!message.citations?.length && (
               <div className="citation-row">
                 {message.citations.map((citation, index) => (
                   <button
@@ -122,15 +145,72 @@ export function ChatMessageList({
                     <Copy size={14} />
                   )}
                 </button>
-                <button type="button" aria-label="Helpful answer" title="Helpful">
+                <button
+                  type="button"
+                  aria-label="Helpful answer"
+                  title="Helpful"
+                  aria-pressed={feedback[message.id] === "up"}
+                  className={feedback[message.id] === "up" ? "is-selected" : ""}
+                  onClick={() => rate(message.id, "up")}
+                >
                   <ThumbsUp size={14} />
                 </button>
-                <button type="button" aria-label="Unhelpful answer" title="Not helpful">
+                <button
+                  type="button"
+                  aria-label="Unhelpful answer"
+                  title="Not helpful"
+                  aria-pressed={feedback[message.id] === "down"}
+                  className={feedback[message.id] === "down" ? "is-selected" : ""}
+                  onClick={() => rate(message.id, "down")}
+                >
                   <ThumbsDown size={14} />
                 </button>
-                <button type="button" aria-label="More options">
-                  <MoreHorizontal size={15} />
-                </button>
+                <div className="menu-anchor">
+                  <button
+                    type="button"
+                    aria-label="More options"
+                    aria-haspopup="menu"
+                    aria-expanded={menuId === message.id}
+                    onClick={() =>
+                      setMenuId(menuId === message.id ? null : message.id)
+                    }
+                  >
+                    <MoreHorizontal size={15} />
+                  </button>
+
+                  {menuId === message.id && (
+                    <div className="menu menu--up" role="menu">
+                      <button
+                        type="button"
+                        role="menuitem"
+                        className="menu-item"
+                        onClick={() => {
+                          setMenuId(null);
+                          void copyMessage(message);
+                        }}
+                      >
+                        <span>Copy answer</span>
+                      </button>
+                      {onFollowUp && (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          className="menu-item"
+                          onClick={() => {
+                            setMenuId(null);
+                            onFollowUp(
+                              `Follow up on: "${message.content
+                                .replace(/\*\*/g, "")
+                                .slice(0, 70)}" — `,
+                            );
+                          }}
+                        >
+                          <span>Ask a follow-up</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
 
                 {copiedId === message.id && (
                   <span className="copied-label">Copied</span>

@@ -8,7 +8,6 @@ import {
   GraduationCap,
   Menu,
   PanelRightClose,
-  Plus,
   Search,
   Settings2,
   X,
@@ -23,6 +22,17 @@ import { NotebookHeader } from "../features/notebooks/components/NotebookHeader"
 import { ChatMessageList } from "../features/chat/components/ChatMessageList";
 import { ChatComposer } from "../features/chat/components/ChatComposer";
 import { SourcePanel } from "../features/sources/components/SourcePanel";
+import {
+  HelpDialog,
+  PasteDialog,
+  ProfileDialog,
+  SearchDialog,
+  SettingsDialog,
+  type AnswerSettings,
+  type DialogKind,
+} from "../features/workspace/WorkspaceDialogs";
+import { AddSourceMenu } from "../features/sources/components/AddSourceMenu";
+import { notebookNames } from "../features/notebooks/data";
 import type { AuthUser } from "../lib/api";
 
 import type { ChatMessage, Citation, SourceDocument } from "../types";
@@ -161,6 +171,11 @@ export default function WorkspacePage({
   const [sourceSearch, setSourceSearch] = useState("");
   const [activeSourceId, setActiveSourceId] = useState("s1");
   const [toast, setToast] = useState("");
+  const [dialog, setDialog] = useState<DialogKind | null>(null);
+  const [settings, setSettings] = useState<AnswerSettings>({
+    showCitations: true,
+    enterToSend: true,
+  });
 
   const [sidebarWidth, setSidebarWidth] = useState(248);
   const [sourcePanelWidth, setSourcePanelWidth] = useState(305);
@@ -251,6 +266,19 @@ export default function WorkspacePage({
     };
   }, [sourcePanelOpen]);
 
+  // Cmd/Ctrl + K opens search.
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setDialog("search");
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   function startResize(
     event: React.PointerEvent<HTMLButtonElement>,
     target: ResizeTarget,
@@ -336,10 +364,161 @@ export default function WorkspacePage({
     showToast("Demo source added. File upload is not connected yet.");
   }
 
+  function revealSources(added: SourceDocument[]) {
+    setSources((current) => [...current, ...added]);
+    setActiveSourceId(added[added.length - 1].id);
+    setSelectedCitation(null);
+    setSourcePanelOpen(true);
+  }
+
+  async function addFiles(files: File[]) {
+    const colors: SourceDocument["color"][] = ["blue", "amber", "rose"];
+    const added: SourceDocument[] = [];
+    let skipped = 0;
+
+    for (const file of files) {
+      const extension = file.name.split(".").pop()?.toLowerCase();
+      const type =
+        extension === "pdf"
+          ? "PDF"
+          : extension === "docx"
+            ? "DOCX"
+            : extension === "txt"
+              ? "TXT"
+              : null;
+
+      if (!type) {
+        skipped += 1;
+        continue;
+      }
+
+      const excerpt =
+        type === "TXT"
+          ? (await file.text()).trim().slice(0, 280) || "This file is empty."
+          : "Uploaded in this session. Reading PDF and DOCX content is not connected yet.";
+
+      added.push({
+        id: crypto.randomUUID(),
+        name: file.name,
+        type,
+        pages: 0,
+        added: "Just now",
+        color: colors[(sources.length + added.length) % colors.length],
+        excerpt,
+      });
+    }
+
+    if (added.length) revealSources(added);
+
+    if (!added.length) {
+      showToast("Only PDF, DOCX and TXT files can be added.");
+    } else {
+      showToast(
+        `${added.length} ${added.length === 1 ? "source" : "sources"} added${
+          skipped ? `, ${skipped} skipped (unsupported type)` : ""
+        }. Processing isn't connected yet.`,
+      );
+    }
+  }
+
+  function addPastedText(title: string, text: string) {
+    revealSources([
+      {
+        id: crypto.randomUUID(),
+        name: `${title}.txt`,
+        type: "TXT",
+        pages: 0,
+        added: "Just now",
+        color: "amber",
+        excerpt: text.slice(0, 280),
+      },
+    ]);
+    setDialog(null);
+    showToast("Text added as a source.");
+  }
+
   function selectCitation(citation: Citation) {
     setSelectedCitation(citation);
     setActiveSourceId(citation.sourceId);
     setSourcePanelOpen(true);
+  }
+
+  function openNotebook(name: string) {
+    setActiveNotebook(name);
+    setDialog(null);
+    setMobileNavOpen(false);
+  }
+
+  function openSource(id: string) {
+    setActiveSourceId(id);
+    setSelectedCitation(null);
+    setSourcePanelOpen(true);
+    setDialog(null);
+  }
+
+  function removeSource(id: string) {
+    const remaining = sources.filter((source) => source.id !== id);
+
+    setSources(remaining);
+
+    if (activeSourceId === id) {
+      setActiveSourceId(remaining[0]?.id ?? "");
+    }
+
+    if (selectedCitation?.sourceId === id) {
+      setSelectedCitation(null);
+    }
+
+    showToast("Source removed from this notebook.");
+  }
+
+  async function shareNotebook() {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      showToast("Link copied to clipboard.");
+    } catch {
+      showToast("Couldn't copy the link. Copy it from the address bar.");
+    }
+  }
+
+  function exportConversation() {
+    const lines = messages.map((message) => {
+      const who = message.role === "assistant" ? "Fieldnotes" : "You";
+      const body = [
+        message.content,
+        ...(message.bullets ?? []).map(
+          (item, index) => `${index + 1}. ${item.title}: ${item.detail}`,
+        ),
+        message.ending ?? "",
+      ]
+        .filter(Boolean)
+        .join("\n")
+        .replace(/\*\*/g, "");
+
+      return `${who} (${message.time})\n${body}`;
+    });
+
+    const blob = new Blob([`${activeNotebook}\n\n${lines.join("\n\n")}\n`], {
+      type: "text/plain",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = `${activeNotebook.toLowerCase().replace(/\s+/g, "-")}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+
+    showToast("Conversation exported.");
+  }
+
+  function clearConversation() {
+    if (!window.confirm("Clear this conversation? This can't be undone.")) {
+      return;
+    }
+
+    setMessages([]);
+    showToast("Conversation cleared.");
   }
 
   function closeSourcesPanel() {
@@ -365,6 +544,8 @@ export default function WorkspacePage({
         user={user}
         onLogout={onLogout}
         signingOut={signingOut}
+        onOpenDialog={setDialog}
+        onNotice={showToast}
       />
 
       <button
@@ -406,7 +587,7 @@ export default function WorkspacePage({
             type="button"
             className="icon-button"
             aria-label="Settings"
-            onClick={() => showToast("Settings will be available soon.")}
+            onClick={() => setDialog("settings")}
           >
             <Settings2 size={18} />
           </button>
@@ -420,6 +601,11 @@ export default function WorkspacePage({
             setSourcePanelOpen((open) => !open)
           }
           sourcePanelOpen={sourcePanelOpen}
+          notebooks={notebookNames}
+          onSelectNotebook={openNotebook}
+          onShare={() => void shareNotebook()}
+          onExport={exportConversation}
+          onClear={clearConversation}
         />
 
         <div
@@ -434,12 +620,7 @@ export default function WorkspacePage({
           <section className="conversation-column">
             <div className="conversation-scroll">
               <div className="conversation-intro">
-                <div className="intro-icon">
-                  <GraduationCap size={20} />
-                </div>
-
                 <div>
-                  <p className="eyebrow">YOUR STUDY WORKSPACE</p>
                   <h1>Let’s work through your sources.</h1>
                   <p className="intro-copy">
                     Explore your study materials in one place.
@@ -451,6 +632,8 @@ export default function WorkspacePage({
               <ChatMessageList
                 messages={messages}
                 onCitationClick={selectCitation}
+                showCitations={settings.showCitations}
+                onFollowUp={setDraft}
               />
 
               <div className="suggestion-row">
@@ -496,7 +679,11 @@ export default function WorkspacePage({
               value={draft}
               onChange={setDraft}
               onSend={sendMessage}
-              onAttach={addDemoSource}
+              onUploadFiles={(files) => void addFiles(files)}
+              onPasteText={() => setDialog("paste")}
+              onAddSample={addDemoSource}
+              onOpenSettings={() => setDialog("settings")}
+              enterToSend={settings.enterToSend}
             />
 
             <p className="disclaimer">
@@ -549,17 +736,14 @@ export default function WorkspacePage({
                     aria-label="Find a source"
                   />
 
-                  <kbd>⌘ K</kbd>
                 </label>
 
-                <button
-                  type="button"
-                  className="add-source-button"
-                  onClick={addDemoSource}
-                >
-                  <Plus size={16} />
-                  Add demo source
-                </button>
+                <AddSourceMenu
+                  variant="wide"
+                  onUploadFiles={(files) => void addFiles(files)}
+                  onPasteText={() => setDialog("paste")}
+                  onAddSample={addDemoSource}
+                />
 
                 <SourcePanel
                   sources={filteredSources}
@@ -568,6 +752,7 @@ export default function WorkspacePage({
                     setActiveSourceId(id);
                     setSelectedCitation(null);
                   }}
+                  onRemove={removeSource}
                 />
 
                 <div className="source-detail">
@@ -626,6 +811,36 @@ export default function WorkspacePage({
           onClick={closeSourcesPanel}
         />
       )}
+
+      {dialog === "search" || dialog === "notebooks" ? (
+        <SearchDialog
+          mode={dialog}
+          notebooks={notebookNames}
+          sources={sources}
+          activeNotebook={activeNotebook}
+          onOpenNotebook={openNotebook}
+          onOpenSource={openSource}
+          onClose={() => setDialog(null)}
+        />
+      ) : null}
+
+      {dialog === "settings" && (
+        <SettingsDialog
+          settings={settings}
+          onChange={setSettings}
+          onClose={() => setDialog(null)}
+        />
+      )}
+
+      {dialog === "profile" && (
+        <ProfileDialog user={user} onClose={() => setDialog(null)} />
+      )}
+
+      {dialog === "paste" && (
+        <PasteDialog onAdd={addPastedText} onClose={() => setDialog(null)} />
+      )}
+
+      {dialog === "help" && <HelpDialog onClose={() => setDialog(null)} />}
 
       {toast && (
         <div className="toast" role="status">
