@@ -10,6 +10,7 @@ const userSchema = new Schema(
       minlength: 2,
       maxlength: 80,
     },
+
     email: {
       type: String,
       required: true,
@@ -18,8 +19,36 @@ const userSchema = new Schema(
       trim: true,
       maxlength: 254,
     },
+
     passwordHash: {
       type: String,
+      required: true,
+      select: false,
+    },
+
+    // Email verification status
+    emailVerified: {
+      type: Boolean,
+      default: false,
+      required: true,
+    },
+
+    // SHA-256 hash of the email verification code
+    verificationCodeHash: {
+      type: String,
+      select: false,
+    },
+
+    // Expiration time for the verification code
+    verificationCodeExpiresAt: {
+      type: Date,
+      select: false,
+    },
+
+    // Number of failed verification attempts
+    verificationAttempts: {
+      type: Number,
+      default: 0,
       required: true,
       select: false,
     },
