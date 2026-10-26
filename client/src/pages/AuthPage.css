@@ -290,3 +290,10 @@
     font-size: 34px;
   }
 }
+
+.auth-email-valid {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.45;
+  color: #55715e;
+}

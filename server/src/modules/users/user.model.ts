@@ -33,23 +33,50 @@ const userSchema = new Schema(
       required: true,
     },
 
-    // SHA-256 hash of the email verification code
+    // Signup/login verification code
     verificationCodeHash: {
       type: String,
       select: false,
     },
 
-    // Expiration time for the verification code
     verificationCodeExpiresAt: {
       type: Date,
       select: false,
     },
 
-    // Number of failed verification attempts
     verificationAttempts: {
       type: Number,
       default: 0,
       required: true,
+      select: false,
+    },
+
+    // Password-reset OTP — kept separate from login verification
+    passwordResetCodeHash: {
+      type: String,
+      select: false,
+    },
+
+    passwordResetCodeExpiresAt: {
+      type: Date,
+      select: false,
+    },
+
+    passwordResetAttempts: {
+      type: Number,
+      default: 0,
+      required: true,
+      select: false,
+    },
+
+    // Short-lived token issued after a valid reset OTP
+    passwordResetTokenHash: {
+      type: String,
+      select: false,
+    },
+
+    passwordResetTokenExpiresAt: {
+      type: Date,
       select: false,
     },
   },
