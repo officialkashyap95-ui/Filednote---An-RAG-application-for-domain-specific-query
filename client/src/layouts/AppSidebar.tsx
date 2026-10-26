@@ -21,6 +21,8 @@ import {
   X,
 } from "lucide-react";
 import type { AuthUser } from "../lib/api";
+import { notebookNames } from "../features/notebooks/data";
+import type { DialogKind } from "../features/workspace/WorkspaceDialogs";
 
 type Props = {
   activeDomain: string;
@@ -32,6 +34,8 @@ type Props = {
   user: AuthUser;
   onLogout: () => void | Promise<void>;
   signingOut: boolean;
+  onOpenDialog: (kind: DialogKind) => void;
+  onNotice: (message: string) => void;
 };
 
 const domains = [
@@ -41,11 +45,7 @@ const domains = [
   { name: "Medical", icon: Stethoscope, available: false },
 ];
 
-const notebooks = [
-  "Computer Networks",
-  "Data Structures",
-  "Python Fundamentals",
-];
+const notebooks = notebookNames;
 
 function getInitials(name: string) {
   return name
@@ -68,8 +68,11 @@ export function AppSidebar({
   user,
   onLogout,
   signingOut,
+  onOpenDialog,
+  onNotice,
 }: Props) {
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const [domainsOpen, setDomainsOpen] = useState(true);
   const workspaceMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,6 +99,11 @@ export function AppSidebar({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
+
+  function choose(kind: DialogKind) {
+    setWorkspaceMenuOpen(false);
+    onOpenDialog(kind);
+  }
 
   async function handleLogoutClick() {
     if (signingOut) return;
@@ -132,17 +140,24 @@ export function AppSidebar({
         >
           <Plus size={16} />
           <span>New notebook</span>
-          <kbd>⌘ N</kbd>
         </button>
 
         <nav className="sidebar-nav" aria-label="Main navigation">
-          <button className="nav-item" type="button">
+          <button
+            className="nav-item"
+            type="button"
+            onClick={() => onOpenDialog("search")}
+          >
             <Search size={17} />
             <span>Search</span>
             <kbd>⌘ K</kbd>
           </button>
 
-          <button className="nav-item" type="button">
+          <button
+            className="nav-item"
+            type="button"
+            onClick={() => onOpenDialog("notebooks")}
+          >
             <FileText size={17} />
             <span>All notebooks</span>
           </button>
@@ -150,11 +165,21 @@ export function AppSidebar({
 
         <section className="sidebar-section">
           <div className="section-label">
-            <span>DOMAINS</span>
-            <ChevronDown size={13} />
+            <span>Domains</span>
+            <button
+              type="button"
+              aria-label={domainsOpen ? "Collapse domains" : "Expand domains"}
+              aria-expanded={domainsOpen}
+              onClick={() => setDomainsOpen((open) => !open)}
+            >
+              <ChevronDown
+                size={14}
+                className={domainsOpen ? "" : "chevron-collapsed"}
+              />
+            </button>
           </div>
 
-          {domains.map(({ name, icon: Icon, available }) => (
+          {domainsOpen && domains.map(({ name, icon: Icon, available }) => (
             <button
               key={name}
               type="button"
@@ -169,14 +194,14 @@ export function AppSidebar({
             >
               <Icon size={17} />
               <span>{name}</span>
-              {!available && <span className="soon-dot" />}
+              {!available && <span className="soon-label">Soon</span>}
             </button>
           ))}
         </section>
 
         <section className="sidebar-section notebooks-section">
           <div className="section-label">
-            <span>RECENT NOTEBOOKS</span>
+            <span>Recent notebooks</span>
             <button
               type="button"
               aria-label="Create notebook"
@@ -221,7 +246,7 @@ export function AppSidebar({
               <button
                 className="account-menu-identity"
                 type="button"
-                onClick={() => setWorkspaceMenuOpen(false)}
+                onClick={() => choose("profile")}
               >
                 <span className="account-menu-avatar">
                   {getInitials(user.name)}
@@ -240,7 +265,10 @@ export function AppSidebar({
               <button
                 className="workspace-menu-item"
                 type="button"
-                onClick={() => setWorkspaceMenuOpen(false)}
+                onClick={() => {
+                  setWorkspaceMenuOpen(false);
+                  onNotice("Plans aren't available yet.");
+                }}
               >
                 <Sparkles size={19} />
                 <span>Explore plans</span>
@@ -249,7 +277,7 @@ export function AppSidebar({
               <button
                 className="workspace-menu-item"
                 type="button"
-                onClick={() => setWorkspaceMenuOpen(false)}
+                onClick={() => choose("settings")}
               >
                 <SlidersHorizontal size={19} />
                 <span>Personalization</span>
@@ -258,7 +286,7 @@ export function AppSidebar({
               <button
                 className="workspace-menu-item"
                 type="button"
-                onClick={() => setWorkspaceMenuOpen(false)}
+                onClick={() => choose("profile")}
               >
                 <CircleUserRound size={19} />
                 <span>Profile</span>
@@ -267,7 +295,7 @@ export function AppSidebar({
               <button
                 className="workspace-menu-item"
                 type="button"
-                onClick={() => setWorkspaceMenuOpen(false)}
+                onClick={() => choose("settings")}
               >
                 <Settings2 size={19} />
                 <span>Settings</span>
@@ -278,7 +306,7 @@ export function AppSidebar({
               <button
                 className="workspace-menu-item"
                 type="button"
-                onClick={() => setWorkspaceMenuOpen(false)}
+                onClick={() => choose("help")}
               >
                 <CircleHelp size={19} />
                 <span>Help</span>
@@ -303,7 +331,7 @@ export function AppSidebar({
               <button
                 className="account-menu-offer"
                 type="button"
-                onClick={() => setWorkspaceMenuOpen(false)}
+                onClick={() => choose("help")}
               >
                 <Gift size={18} />
                 <span>Explore Fieldnotes features</span>
