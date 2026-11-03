@@ -166,7 +166,22 @@ export default function WorkspacePage({
   const [selectedCitation, setSelectedCitation] =
     useState<Citation | null>(null);
 
-  const [sourcePanelOpen, setSourcePanelOpen] = useState(true);
+  const [sourcePanelOpen, setSourcePanelOpen] = useState(
+    () => !window.matchMedia("(max-width: 850px)").matches
+  );
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 850px)");
+
+    const handleScreenChange = (event: MediaQueryListEvent) => {
+      setSourcePanelOpen(!event.matches);
+    };
+
+    mediaQuery.addEventListener("change", handleScreenChange);
+
+    return () => {
+      mediaQuery.removeEventListener("change", handleScreenChange);
+    };
+  }, []);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [sourceSearch, setSourceSearch] = useState("");
   const [activeSourceId, setActiveSourceId] = useState("s1");
@@ -414,8 +429,7 @@ export default function WorkspacePage({
       showToast("Only PDF, DOCX and TXT files can be added.");
     } else {
       showToast(
-        `${added.length} ${added.length === 1 ? "source" : "sources"} added${
-          skipped ? `, ${skipped} skipped (unsupported type)` : ""
+        `${added.length} ${added.length === 1 ? "source" : "sources"} added${skipped ? `, ${skipped} skipped (unsupported type)` : ""
         }. Processing isn't connected yet.`,
       );
     }
